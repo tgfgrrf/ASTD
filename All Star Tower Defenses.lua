@@ -322,15 +322,62 @@ local MainSettings = {
     anonymous_mode_name = "Anonymous"
 }
 
-if not pcall(function() readfile(SettingsFile) end) then
-    writefile(SettingsFile,game:GetService("HttpService"):JSONEncode(MainSettings))
+-- if not pcall(function() 
+--     readfile(SettingsFile) 
+-- end) then
+--     writefile(SettingsFile,game:GetService("HttpService"):JSONEncode(MainSettings))
+-- end
+
+-- if not pcall(function()
+--     Settings = game:GetService("HttpService"):JSONDecode(readfile(SettingsFile))
+-- end) then
+--     writefile(SettingsFile,game:GetService("HttpService"):JSONEncode(MainSettings))
+--     Settings = MainSettings
+-- end
+
+local HttpService = game:GetService("HttpService")
+
+-- 🔹 function safe
+local function safeRead(path)
+    if readfile then
+        local success, result = pcall(function()
+            return readfile(path)
+        end)
+        if success then
+            return result
+        end
+    end
+    return nil
 end
 
-if not pcall(function()
-    Settings = game:GetService("HttpService"):JSONDecode(readfile(SettingsFile))
-end) then
-    writefile(SettingsFile,game:GetService("HttpService"):JSONEncode(MainSettings))
+local function safeWrite(path, data)
+    if writefile then
+        pcall(function()
+            writefile(path, data)
+        end)
+    end
+end
+
+-- 🔹 โหลด Settings
+local raw = safeRead(SettingsFile)
+
+if not raw then
+    -- ❌ ไม่มีไฟล์ → สร้างใหม่
     Settings = MainSettings
+    safeWrite(SettingsFile, HttpService:JSONEncode(MainSettings))
+else
+    -- ✅ มีไฟล์ → โหลด
+    local success, decoded = pcall(function()
+        return HttpService:JSONDecode(raw)
+    end)
+
+    if success and decoded then
+        Settings = decoded
+    else
+        -- ❌ ไฟล์พัง → reset
+        Settings = MainSettings
+        safeWrite(SettingsFile, HttpService:JSONEncode(MainSettings))
+    end
 end
 
 local IndividualMacroMainSettings = {
